@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>MAEK7 Smart Africa | المنصة الذكية المتكاملة</title>
+    <script type="importmap">
+        {
+            "imports": {
+                "@google/generative-ai": "https://esm.run/@google/generative-ai"
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        :root {
+            --bg-dark: #0a0c12; --bg-card: #0f131c; --bg-input: #1a1e29;
+            --border: #2d3748; --text: #eef2ff; --text-muted: #9ca3af;
+            --primary: #10a37f; --primary-dark: #0d7a5f;
+        }
+        body.light-mode {
+            --bg-dark: #f3f4f6; --bg-card: #ffffff; --bg-input: #e5e7eb;
+            --border: #d1d5db; --text: #1f2937; --text-muted: #6b7280;
+        }
+        body { background: var(--bg-dark); color: var(--text); transition: all 0.3s; }
+        .app-container { display: flex; min-height: 100vh; }
+        /* السايدبار الرئيسي */
+        .main-sidebar {
+            width: 300px; background: var(--bg-card); border-left: 1px solid var(--border);
+            padding: 20px; position: fixed; right: 0; top: 0; bottom: 0; overflow-y: auto;
+            transition: transform 0.3s; z-index: 100;
+        }
+        @media (max-width: 768px) { .main-sidebar { transform: translateX(100%); } .main-sidebar.open { transform: translateX(0); } }
+        .main-content { flex: 1; margin-right: 300px; display: flex; flex-direction: column; }
+        @media (max-width: 768px) { .main-content { margin-right: 0; } }
+        /* الشريط العلوي */
+        .top-bar {
+            background: var(--bg-card); padding: 12px 24px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+        }
+        .api-input { background: var(--bg-input); border: 1px solid var(--border); padding: 8px 16px; border-radius: 40px; color: var(--text); width: 280px; }
+        .badge { background: var(--bg-input); padding: 6px 16px; border-radius: 40px; font-size: 12px; }
+        /* أزرار المحاور */
+        .hub-tabs {
+            display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 24px;
+            background: var(--bg-card); border-bottom: 1px solid var(--border);
+        }
+        .hub-btn {
+            padding: 8px 16px; border-radius: 40px; background: var(--bg-input);
+            color: var(--text); border: none; cursor: pointer; font-weight: bold;
+            transition: 0.2s; font-size: 12px; display: flex; align-items: center; gap: 6px;
+        }
+        .hub-btn.active { background: var(--primary); color: white; }
+        /* منطقة المحتوى */
+        .dynamic-area {
+            flex: 1; padding: 24px 12% 200px 12%; overflow-y: auto;
+        }
+        @media (max-width: 1024px) { .dynamic-area { padding: 20px 4% 200px 4%; } }
+        .card { background: var(--bg-card); border-radius: 24px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .card-header { border-bottom: 2px solid var(--primary); padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; flex-wrap: wrap; }
+        textarea, input, select { width: 100%; background: var(--bg-input); border: 1px solid var(--border); border-radius: 16px; padding: 12px; color: var(--text); margin: 10px 0; font-family: inherit; }
+        .btn-primary { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 40px; cursor: pointer; margin: 5px; }
+        .btn-secondary { background: var(--bg-input); border: 1px solid var(--border); color: var(--text); padding: 8px 16px; border-radius: 40px; cursor: pointer; }
+        .toast { position: fixed; bottom: 20px; left: 20px; background: var(--primary); color: white; padding: 12px 24px; border-radius: 40px; z-index: 2000; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-100%); } to { opacity: 1; } }
+        .stat-number { font-size: 28px; font-weight: bold; color: var(--primary); }
+        .sidebar-btn { width: 100%; background: var(--bg-input); border: none; padding: 10px; border-radius: 40px; margin-bottom: 10px; cursor: pointer; text-align: center; }
+        .menu-toggle { display: none; background: var(--primary); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; }
+        @media (max-width: 768px) { .menu-toggle { display: block; } }
+        .examples-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 15px 0; }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <!-- سايدبار جانبي -->
+    <div class="main-sidebar" id="sidebar">
+        <div style="text-align:center; margin-bottom:24px;"><h2>🌍 MAEK7</h2><p style="color:var(--primary);">Smart Africa Platform</p></div>
+        <div style="margin-bottom:20px;"><div class="stat-number" id="statReports">0</div><div style="font-size:11px;">إجمالي التقارير</div></div>
+        <button id="btnTheme" class="sidebar-btn">🌙 الوضع المظلم</button>
+        <button id="btnClearAll" class="sidebar-btn" style="border:1px solid var(--danger); color:var(--danger);">🗑️ مسح الكل</button>
+        <div style="margin-top:20px; text-align:center;"><a href="#" onclick="location.reload();return false;" style="color:var(--primary);">↻ تحديث</a></div>
+    </div>
+
+    <div class="main-content">
+        <div class="top-bar">
+            <button class="menu-toggle" id="menuToggle">☰</button>
+            <input type="password" id="apiKey" class="api-input" placeholder="🔑 مفتاح Gemini API (اختياري)" oninput="saveGlobalKey()">
+            <div class="badge" id="apiStatus">⚙️ انتظار</div>
+            <div class="badge">🇿🇦🇪🇬🇳🇬 صُنع لأفريقيا</div>
+        </div>
+        <div class="hub-tabs" id="hubTabs">
+            <button class="hub-btn active" data-tab="cyber">🛡️ الأمن السيبراني</button>
+            <button class="hub-btn" data-tab="agri">🌾 الفلاحة والأمن الغذائي</button>
+            <button class="hub-btn" data-tab="health">🏥 الصحة والأمن الصحي</button>
+            <button class="hub-btn" data-tab="edu">🎓 التعليم والجامعات</button>
+            <button class="hub-btn" data-tab="media">📡 الإعلام والاتصال</button>
+            <button class="hub-btn" data-tab="transport">🚚 النقل والبنية التحتية</button>
+            <button class="hub-btn" data-tab="environment">🌍 البيئة والطاقة</button>
+            <button class="hub-btn" data-tab="fintech">💰 الشمول المالي</button>
+            <button class="hub-btn" data-tab="entrepreneur">🚀 ريادة الأعمال</button>
+            <button class="hub-btn" data-tab="digital">📱 التمكين الرقمي</button>
+        </div>
+        <div class="dynamic-area" id="dynamicArea"></div>
+    </div>
+</div>
+
+<script type="module">
+    import { GoogleGenerativeAI } from "@google/generative-ai";
+    // ---------------------------- إعدادات عامة ----------------------------
+    let currentTab = 'cyber';
+    let reports = []; // {tab, text, date}
+    const apiInput = document.getElementById('apiKey');
+    const apiStatus = document.getElementById('apiStatus');
+    const statReportsSpan = document.getElementById('statReports');
+    const dynamicArea = document.getElementById('dynamicArea');
+    const btnTheme = document.getElementById('btnTheme');
+    const btnClearAll = document.getElementById('btnClearAll');
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+
+    function hasValidKey() { const key = apiInput.value.trim(); return key && key.length > 10; }
+    function updateApiStatus() { apiStatus.innerHTML = hasValidKey() ? '🟢 جاهز' : '🔴 انتظار'; apiStatus.style.color = hasValidKey() ? '#10b981' : '#ef4444'; }
+    window.saveGlobalKey = () => { localStorage.setItem('maek7_global_key', apiInput.value.trim()); updateApiStatus(); };
+    function showToast(msg, isErr=false) { const t=document.createElement('div'); t.className='toast'; t.style.background=isErr?'#ef4444':'var(--primary)'; t.innerText=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000); }
+    function saveReports() { localStorage.setItem('maek7_global_reports', JSON.stringify(reports)); }
+    function loadReports() { const saved = localStorage.getItem('maek7_global_reports'); if(saved) try{ reports=JSON.parse(saved); }catch(e){} statReportsSpan.innerText = reports.length; }
+    function addReport(tabName, text) { reports.push({tab:tabName, text:text, date:Date.now()}); saveReports(); statReportsSpan.innerText = reports.length; showToast("تم حفظ التقرير"); }
+    // دالة مساعدة للاتصال بـ Gemini أو استخدام ردود مدمجة
+    async function smartAnalyze(prompt, fallbackMessage = "يمكنك إدخال مفتاح Gemini API لتحليل أعمق.") {
+        if(hasValidKey()) {
+            try {
+                const genAI = new GoogleGenerativeAI(apiInput.value.trim());
+                const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+                const result = await model.generateContent(prompt);
+                return result.response.text();
+            } catch(e) { return `❌ خطأ API: ${e.message}\n\n${fallbackMessage}`; }
+        } else return `🔑 لم يتم إدخال مفتاح Gemini.\n\n${fallbackMessage}`;
+    }
+
+    // ---------------------------- المحتويات ----------------------------
+    // 1. الأمن السيبراني
+    function renderCyber() {
+        dynamicArea.innerHTML = `
+            <div class="card">
+                <div class="card-header"><h3>🛡️ تحليل التهديدات السيبرانية</h3><span class="badge">AI مدعوم</span></div>
+                <textarea id="cyberInput" rows="4" placeholder="أدخل سجلات النظام، وصف هجوم، أو تقرير حادثة..."></textarea>
+                <div class="examples-row">
+                    <button class="btn-secondary" data-sample="ddos">هجوم DDoS</button>
+                    <button class="btn-secondary" data-sample="phishing">رسالة تصيد</button>
+                    <button class="btn-secondary" data-sample="malware">تحليل ملف مشبوه</button>
+                </div>
+                <button id="cyberAnalyzeBtn" class="btn-primary">🔍 تحليل التهديد</button>
+                <div id="cyberResult" style="margin-top:20px; background:var(--bg-input); border-radius:16px; padding:16px; display:none;"></div>
+            </div>
+            <div class="card"><h4>📋 خطط الاستجابة للحوادث (IRP)</h4><button id="genIRPBtn" class="btn-primary">توليد خطة استجابة</button><div id="irpResult"></div></div>
+        `;
+        const sampleData = { ddos:"هجوم حجب خدمة DDoS موزع من 10 آلاف عنوان IP، يستهدف خادم الويب، توقف الخدمة لمدة 30 دقيقة.", phishing:"بريد إلكتروني للموظفين يطلب تحديث كلمة المرور عبر رابط مشبوه، النطاق مزيف.", malware:"ملف executable يحاول الاتصال بخادم خارجي، تم اكتشافه بواسطة مضاد الفيروسات." };
+        document.querySelectorAll('[data-sample]').forEach(btn => btn.onclick = () => { document.getElementById('cyberInput').value = sampleData[btn.dataset.sample] || ""; });
+        document.getElementById('cyberAnalyzeBtn').onclick = async () => {
+            const text = document.getElementById('cyberInput').value.trim();
+            if(!text){ showToast("أدخل وصف التهديد",true); return; }
+            const prompt = `أنت خبير أمن سيبراني. حلل التهديد التالي: ${text}. حدد نوع الهجوم، مستوى الخطورة (منخفض/متوسط/عالي/حرج)، الإجراءات الفورية الموصى بها، وأفضل الممارسات للوقاية.`;
+            const resultDiv = document.getElementById('cyberResult'); resultDiv.style.display='block'; resultDiv.innerHTML="🔄 جاري التحليل...";
+            const analysis = await smartAnalyze(prompt, "يرجى إدخال مفتاح Gemini API للحصول على تحليل مفصل للتهديد السيبراني.");
+            resultDiv.innerHTML = analysis.replace(/\n/g,'<br>');
+            addReport("الأمن السيبراني", text+"\n---\n"+analysis);
+        };
+        document.getElementById('genIRPBtn').onclick = async () => {
+            const prompt = "قدم نموذجاً موجزاً لخطة الاستجابة للحوادث السيبرانية (IRP) تشمل: فريق الاستجابة، مراحل الاحتواء والتحقيق، التعافي، والتواصل مع الأطراف المعنية.";
+            const irpDiv = document.getElementById('irpResult');
+            irpDiv.innerHTML = "🔄 جاري التوليد...";
+            const res = await smartAnalyze(prompt, "خطة استجابة أولية: 1- تشكيل فريق CSIRT. 2- عزل الأنظمة المتأثرة. 3- تحليل الأدلة الرقمية. 4- استعادة البيانات من النسخ الاحتياطية. 5- الإبلاغ للجهات المعنية.");
+            irpDiv.innerHTML = `<div style="background:var(--bg-input);border-radius:16px;padding:16px;margin-top:12px;">${res.replace(/\n/g,'<br>')}</div>`;
+            addReport("الأمن السيبراني - خطة استجابة", res);
+        };
+    }
+
+    // 2. الفلاحة (باختصار لتجنب الطول، نفس النمط لبقية المحاور)
+    function renderAgri() {
+        dynamicArea.innerHTML = `
+            <div class="card">
+                <div class="card-header"><h3>🌾 الفلاحة الذكية - تحليل التربة والمحاصيل</h3></div>
+                <textarea id="agriInput" rows="4" placeholder="أدخل بيانات التربة، المناخ، أو وصف الآفة..."></textarea>
+                <div class="examples-row"><button class="btn-secondary" data-sample="soil">تربة طينية، pH 7.2، نيتروجين منخفض</button>
+                <button class="btn-secondary" data-sample="pest">حشرة المن على القمح</button></div>
+                <button id="agriAnalyzeBtn" class="btn-primary">🌱 تحليل</button>
+                <div id="agriResult" style="margin-top:20px; background:var(--bg-input); border-radius:16px; padding:16px; display:none;"></div>
+            </div>`;
+        document.querySelectorAll('[data-sample]').forEach(btn => btn.onclick = () => { document.getElementById('agriInput').value = btn.innerText; });
+        document.getElementById('agriAnalyzeBtn').onclick = async () => {
+            const text = document.getElementById('agriInput').value.trim();
+            if(!text) return;
+            const prompt = `أنت خبير زراعي. بناءً على: ${text}، قدم توصيات لتحسين الإنتاج، مكافحة الآفات، وإدارة الري.`;
+            const resDiv = document.getElementById('agriResult'); resDiv.style.display='block'; resDiv.innerHTML="🔄 جاري...";
+            const analysis = await smartAnalyze(prompt, "نوصي بتحليل التربة بشكل دوري، استخدام الري بالتنقيط، والمكافحة المتكاملة للآفات.");
+            resDiv.innerHTML = analysis.replace(/\n/g,'<br>');
+            addReport("الفلاحة", text+"\n---\n"+analysis);
+        };
+    }
+
+    // 3. الصحة – نفس النمط مع إضافة مثال صور طبية (نصي)
+    function renderHealth() {
+        dynamicArea.innerHTML = `
+            <div class="card">
+                <div class="card-header"><h3>🏥 التشخيص الطبي ودعم القرار</h3></div>
+                <textarea id="healthInput" rows="4" placeholder="أدخل الأعراض، نتائج تحليل، أو وصف صورة طبية..."></textarea>
+                <div class="examples-row"><button class="btn-secondary" data-sample="covid">حمى، سعال جاف، فقدان حاسة الشم</button>
+                <button class="btn-secondary" data-sample="xray">صورة أشعة صدر تظهر تعتيماً في الفص السفلي الأيسر</button></div>
+                <button id="healthAnalyzeBtn" class="btn-primary">🔬 تحليل طبي</button>
+                <div id="healthResult" style="margin-top:20px; background:var(--bg-input); border-radius:16px; padding:16px; display:none;"></div>
+            </div>`;
+        document.querySelectorAll('[data-sample]').forEach(btn => btn.onclick = () => document.getElementById('healthInput').value = btn.innerText);
+        document.getElementById('healthAnalyzeBtn').onclick = async () => {
+            const text = document.getElementById('healthInput').value.trim();
+            if(!text) return;
+            const prompt = `أنت طبيب استشاري. حلل الأعراض/النتائج التالية: ${text}. قدم تشخيصاً أولياً محتملاً، فحوصات موصى بها، ونصائح عامة.`;
+            const resDiv = document.getElementById('healthResult'); resDiv.style.display='block'; resDiv.innerHTML="🔄 جاري...";
+            const analysis = await smartAnalyze(prompt, "يُنصح باستشارة الطبيب المختص وإجراء الفحوصات اللازمة.");
+            resDiv.innerHTML = analysis.replace(/\n/g,'<br>');
+            addReport("الصحة", text+"\n---\n"+analysis);
+        };
+    }
+
+    // 4. التعليم – باختصار (نفس القالب)
+    function renderEdu() {
+        dynamicArea.innerHTML = `<div class="card"><div class="card-header"><h3>🎓 تحليل الأداء الأكاديمي</h3></div>
+        <textarea id="eduInput" rows="4" placeholder="أدخل بيانات الطالب (درجات، غياب، تفاعل)..."></textarea>
+        <button id="eduAnalyzeBtn" class="btn-primary">📊 تحليل وتسرب محتمل</button>
+        <div id="eduResult" style="margin-top:20px; background:var(--bg-input); border-radius:16px; padding:16px; display:none;"></div></div>`;
+        document.getElementById('eduAnalyzeBtn').onclick = async () => {
+            const text = document.getElementById('eduInput').value.trim();
+            if(!text) return;
+            const prompt = `بناءً على بيانات الطالب: ${text}، حلل احتمالية التسرب الأكاديمي، واقترح تدخلاً مبكراً.`;
+            const resDiv = document.getElementById('eduResult'); resDiv.style.display='block'; resDiv.innerHTML="🔄 جاري...";
+            const analysis = await smartAnalyze(prompt, "مراقبة الحضور والدرجات وتقديم دعم أكاديمي ونفسي من أهم عوامل الحد من التسرب.");
+            resDiv.innerHTML = analysis.replace(/\n/g,'<br>');
+            addReport("التعليم", text+"\n---\n"+analysis);
+        };
+    }
+
+    // 5. الإعلام – تحليل المشاعر والأخبار الزائفة
+    function renderMedia() {
+        dynamicArea.innerHTML = `<div class="card"><div class="card-header"><h3>📡 تحليل المحتوى الإعلامي</h3></div>
+        <textarea id="mediaInput" rows="4" placeholder="أدخل نص خبر، منشور، أو مقال..."></textarea>
+        <button id="mediaAnalyzeBtn" class="btn-primary">📰 تحليل المشاعر واكتشاف التضليل</button>
+        <div id="mediaResult" style="margin-top:20px; background:var(--bg-input); border-radius:16px; padding:16px; display:none;"></div></div>`;
+        document.getElementById('mediaAnalyzeBtn').onclick = async () => {
+            const text = document.getElementById('mediaInput').value.trim();
+            if(!text) return;
+            const prompt = `قم بتحليل النص الإعلامي التالي: ${text}. حدد المشاعر العامة (إيجابي/سلبي/محايد)، وهل يحتوي على معلومات مضللة محتملة، واقترح طريقة للتحقق.`;
+            const resDiv = document.getElementById('mediaResult'); resDiv.style.display='block'; resDiv.innerHTML="🔄 جاري...";
+            const analysis = await smartAnalyze(prompt, "استخدم أدوات التحقق من الحقائق ومصادر موثوقة للتحقق من صحة المعلومات.");
+            resDiv.innerHTML = analysis.replace(/\n/g,'<br>');
+            addReport("الإعلام", text+"\n---\n"+analysis);
+        };
+    }
+
+    // باقي المحاور (النقل، البيئة، الشمول المالي، ريادة الأعمال، التمكين الرقمي) بنفس البنية البسيطة
+    function renderTransport() {
+        dynamicArea.innerHTML = `<div class="card"><div class="card-header"><h3>🚚 النقل الذكي والبنية التحتية</h3></div>
+        <textarea id="transInput" rows="4" placeholder="أدخل بيانات مرورية، حادثة، أو طلب صيانة جسر..."></textarea>
+        <button id="transAnalyzeBtn" class="btn-primary">🏗️ تحليل وتحسين</button>
+        <div id="transResult" style="margin-top:20px; background:var(--bg-input); border-radius:16px; padding:16px; display:none;"></div></div>`;
+        document.getElementById('transAnalyzeBtn').onclick = async () => {
+            const text = document.getElementById('transInput').value.trim();
+            if(!text) return;
+            const prompt = `بخصوص بيانات النقل التالية: ${text}، قدم توصيات لتخفيف الازدحام، تحسين السلامة، أو جدولة صيانة البنية التحتية.`;
+            const resDiv = document.getElementById('transResult'); resDiv.style.display='block'; resDiv.innerHTML="🔄 جاري...";
+            const analysis = await smartAnalyze(prompt, "استخدام أنظمة النقل الذكية ITS وتحليل البيانات الضخمة لتحسين تدفق المرور.");
+            resDiv.innerHTML = analysis.replace(/\n/g,'<br>'); addReport("النقل", text+"\n---\n"+analysis);
+        };
+    }
+    function renderEnvironment() {
+        dynamicArea.innerHTML = `<div class="card"><div class="card-header"><h3>🌍 البيئة والطاقة المستدامة</h3></div>
+        <textarea id="envInput" rows="4" placeholder="بيانات تلوث، كوارث طبيعية، استهلاك طاقة..."></textarea>
+        <button id="envAnalyzeBtn" class="btn-primary">🌿 تحليل بيئي</button>
+        <div id="envResult" style="margin-top:20px; background:var(--bg-input); border-radius:16px; padding:16px; display:none;"></div></div>`;
+        document.getElementById('envAnalyzeBtn').onclick = async () => {
+            const text = document.getElementById('envInput').value.trim(); if(!text) return;
+            const prompt = `بناءً على البيانات: ${text}، قدم إجراءات للتخفيف من التلوث، ترشيد الطاقة، أو مواجهة الكوارث البيئية.`;
+            const resDiv = document.getElementById('envResult'); resDiv.style.display='block'; resDiv.innerHTML="🔄 جاري...";
+            const analysis = await smartAnalyze(prompt, "تشجيع الطاقة المتجددة، إعادة التدوير، وأنظمة الإنذار المبكر للكوارث الطبيعية.");
+            resDiv.innerHTML = analysis.replace(/\n/g,'<br>'); addReport("البيئة", text+"\n---\n"+analysis);
+        };
+    }
+    function renderFintech() {
+        dynamicArea.innerHTML = `<div class="card"><div class="card-header"><h3>💰 الشمول المالي والتمويل الذكي</h3></div>
+        <textarea id="finInput" rows="4" placeholder="بيانات العميل، طلب تمويل، أو وصف معاملة مالية..."></textarea>
+        <button id="finAnalyzeBtn" class="btn-primary">💳 تحليل الجدارة ومكافحة الاحتيال</button>
+        <div id="finResult" style="margin-top:20px; background:var(--bg-input); border-radius:16px; padding:16px; display:none;"></div></div>`;
+        document.getElementById('finAnalyzeBtn').onclick = async () => {
+            const text = document.getElementById('finInput').value.trim(); if(!text) return;
+            const prompt = `بناءً على المعلومات: ${text}، قيم الجدارة الائتمانية، اقترح منتجاً مالياً مناسباً، أو اكتشف مؤشرات احتيال محتملة.`;
+            const resDiv = document.getElementById('finResult'); resDiv.style.display='block'; resDiv.innerHTML="🔄 جاري...";
+            const analysis = await smartAnalyze(prompt, "استخدام نماذج تعلم الآلة لتقييم المخاطر وزيادة الشمول المالي للفئات المهمشة.");
+            resDiv.innerHTML = analysis.replace(/\n/g,'<br>'); addReport("الشمول المالي", text+"\n---\n"+analysis);
+        };
+    }
+    function renderEntrepreneur() {
+        dynamicArea.innerHTML = `<div class="card"><div class="card-header"><h3>🚀 ريادة الأعمال والابتكار</h3></div>
+        <textarea id="entInput" rows="4" placeholder="فكرة مشروع، خطة عمل، أو تحدي تواجهه شركتك الناشئة..."></textarea>
+        <button id="entAnalyzeBtn" class="btn-primary">💡 تقييم الفكرة وجدواها</button>
+        <div id="entResult" style="margin-top:20px; background:var(--bg-input); border-radius:16px; padding:16px; display:none;"></div></div>`;
+        document.getElementById('entAnalyzeBtn').onclick = async () => {
+            const text = document.getElementById('entInput').value.trim(); if(!text) return;
+            const prompt = `بخصوص فكرة المشروع التالية: ${text}، قدم تحليل SWOT (نقاط قوة، ضعف، فرص، تهديدات)، والسوق المستهدف، وخطة عمل مبسطة.`;
+            const resDiv = document.getElementById('entResult'); resDiv.style.display='block'; resDiv.innerHTML="🔄 جاري...";
+            const analysis = await smartAnalyze(prompt, "دراسة السوق، التحقق من صحة الفكرة، بناء نموذج أولي، والبحث عن تمويل أولي.");
+            resDiv.innerHTML = analysis.replace(/\n/g,'<br>'); addReport("ريادة الأعمال", text+"\n---\n"+analysis);
+        };
+    }
+    function renderDigital() {
+        dynamicArea.innerHTML = `<div class="card"><div class="card-header"><h3>📱 التمكين الرقمي ومهارات المستقبل</h3></div>
+        <textarea id="digInput" rows="4" placeholder="صف مستوى المهارات الرقمية للشباب، أو تحديات الفجوة الرقمية..."></textarea>
+        <button id="digAnalyzeBtn" class="btn-primary">📊 خطة تمكين رقمي</button>
+        <div id="digResult" style="margin-top:20px; background:var(--bg-input); border-radius:16px; padding:16px; display:none;"></div></div>`;
+        document.getElementById('digAnalyzeBtn').onclick = async () => {
+            const text = document.getElementById('digInput').value.trim(); if(!text) return;
+            const prompt = `بناءً على الوصف التالي: ${text}، اقترح برامج تدريبية رقمية، شراكات مع القطاع الخاص، وسياسات لتقليص الفجوة الرقمية في أفريقيا.`;
+            const resDiv = document.getElementById('digResult'); resDiv.style.display='block'; resDiv.innerHTML="🔄 جاري...";
+            const analysis = await smartAnalyze(prompt, "توفير منصات تعلم مفتوحة، مراكز رقمية مجتمعية، وحوافز لتعليم البرمجة والذكاء الاصطناعي.");
+            resDiv.innerHTML = analysis.replace(/\n/g,'<br>'); addReport("التمكين الرقمي", text+"\n---\n"+analysis);
+        };
+    }
+
+    // ---------------------------- تبديل المحاور ----------------------------
+    function renderCurrentTab() {
+        if(currentTab === 'cyber') renderCyber();
+        else if(currentTab === 'agri') renderAgri();
+        else if(currentTab === 'health') renderHealth();
+        else if(currentTab === 'edu') renderEdu();
+        else if(currentTab === 'media') renderMedia();
+        else if(currentTab === 'transport') renderTransport();
+        else if(currentTab === 'environment') renderEnvironment();
+        else if(currentTab === 'fintech') renderFintech();
+        else if(currentTab === 'entrepreneur') renderEntrepreneur();
+        else if(currentTab === 'digital') renderDigital();
+    }
+
+    // ربط أزرار التبويب
+    document.querySelectorAll('.hub-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.hub-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentTab = btn.dataset.tab;
+            renderCurrentTab();
+        });
+    });
+
+    // وظائف عامة
+    btnTheme.onclick = () => { document.body.classList.toggle('light-mode'); localStorage.setItem('maek7_global_theme', document.body.classList.contains('light-mode') ? 'light' : 'dark'); };
+    btnClearAll.onclick = () => { if(confirm("مسح كل التقارير المحفوظة؟")){ reports=[]; saveReports(); statReportsSpan.innerText=0; showToast("تم مسح التقارير"); } };
+    menuToggle.onclick = () => sidebar.classList.toggle('open');
+
+    const savedKey = localStorage.getItem('maek7_global_key'); if(savedKey) apiInput.value = savedKey;
+    updateApiStatus();
+    const savedTheme = localStorage.getItem('maek7_global_theme'); if(savedTheme === 'light') document.body.classList.add('light-mode');
+    loadReports();
+    renderCurrentTab();
+</script>
+</body>
+</html>
